@@ -230,7 +230,7 @@ if __name__ == "__main__":
     negative = "lowres, text, watermark, deformed, bad anatomy"
 
     # If you have a depth map (grayscale) for camera framing, load it here; otherwise leave None
-    depth_map = None
+    depth_map = Image.new("RGB", (768, 1024), "black")
     # If you have a reference image for IP-Adapter (composition/style guidance), load it here; otherwise None
     ip_ref = None
 

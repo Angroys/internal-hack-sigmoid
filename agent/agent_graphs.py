@@ -168,7 +168,7 @@ def format_code(state: WorkflowCreator) -> dict:
     """
     code_model = state["code"]
     code_string = code_model.code
-    file_path = "test/test.py"
+    file_path = "test/result.py"
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
