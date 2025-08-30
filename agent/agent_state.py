@@ -7,12 +7,18 @@ class WorkflowCreatorUserInput(TypedDict):
 
     user_message: str
 
+class SearchQueries(BaseModel):
+    """Search queries to research the user's request on the internet."""
+    queries: List[str] = Field(
+        description="A list of 3-5 concise search queries to find the best models for the user's needs."
+    )
 
 class AnalyzedNeeds(BaseModel):
     base_model: List[str] = Field(description="4 recommended base model for the user's needs.")
-    lora: List[str]= Field(description="4 recommended LoRA models, if applicable.")
-    controlnet: List[str] = Field(description="4 recommended ControlNet models, if applicable.")
-    ip_adapter: List[str]= Field(description="4 recommended IPAdapter models, if applicable.")
+    # Add default=[] to make the following fields optional
+    lora: List[str]= Field(default=[], description="4 recommended LoRA models, if applicable.")
+    controlnet: List[str] = Field(default=[], description="4 recommended ControlNet models, if applicable.")
+    ip_adapter: List[str]= Field(default=[], description="4 recommended IPAdapter models, if applicable.")
 
 class FinalModelChoice(BaseModel):
     """The final selection of models for the user's workflow."""
@@ -26,6 +32,9 @@ class FinalModelChoice(BaseModel):
 
 class CodeCreation(BaseModel):
     code: str = Field(description="Generated code to run the final, chosen models.")
+
+class FormatCode(BaseModel):
+    result: str = Field(description="Generated code to run the final, chosen models.")
 class WorkflowCreator(TypedDict):
     # Input 
     user_message:str
@@ -47,6 +56,7 @@ class WorkflowCreator(TypedDict):
     ip_adapter: List[str]= Field(description="4 recommended IPAdapter models, if applicable.")
 
     final_models: str
-
+    code:str
+    
     # Output
-    code: str
+    result: str

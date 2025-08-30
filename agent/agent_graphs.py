@@ -1,23 +1,53 @@
-from typing import List
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic.v1 import BaseModel, Field
-from langgraph.graph import StateGraph, END
-# Updated import to reflect the new filename
-from agent.agent_state import WorkflowCreator, AnalyzedNeeds, FinalModelChoice, CodeCreation
+from langchain_community.tools.tavily_search import TavilySearchResults
+from agent.agent_state import WorkflowCreator, AnalyzedNeeds, FinalModelChoice, CodeCreation, SearchQueries
 from agent.configuration import Configuration   
 from agent.utils import search_for_models
-
+import subprocess, os
 
 def analyze_user_needs(state: WorkflowCreator) -> dict:
-    print("--- Step 1: Analyzing User Needs ---")
+    """
+    Analyzes the user's needs by first generating search queries,
+    searching with Tavily, and then making a final recommendation.
+    """
+    print("--- Step 1: Analyzing User Needs (with Tavily) ---")
     user_message = state["user_message"]
+    llm = ChatOpenAI(model=Configuration.base_model, temperature=0)
+    
+    print("--- Generating search queries... ---")
+    query_generation_prompt = ChatPromptTemplate.from_template(
+        """You are a research assistant. Your task is to generate a set of 3-5 search queries 
+        that will help find the best open-source AI image generation models (Base Model, LoRA, ControlNet, etc.) 
+        for a user's request.
 
-    prompt = ChatPromptTemplate.from_template(
+        User's Message:
+        {user_message}
+        
+        Generate concise queries for platforms like Hugging Face and CivitAI.
+        """
+    )
+    
+    query_generation_chain = query_generation_prompt | llm.with_structured_output(SearchQueries)
+    search_queries = query_generation_chain.invoke({"user_message": user_message})
+    print(f"Generated Queries: {search_queries.queries}")
+
+    print("--- Executing search with Tavily... ---")
+    search_tool = TavilySearchResults(max_results=3)
+    search_results = []
+    for query in search_queries.queries:
+        results = search_tool.invoke({"query": query})
+        search_results.extend(results)
+    
+    search_results_str = "\n\n".join([str(res) for res in search_results])
+    print("--- Search complete. Analyzing results... ---")
+
+    final_analysis_prompt = ChatPromptTemplate.from_template(
         """You are a Deep Learning engineer with 20 years of experience in the gen AI field.
-        Your task is to analyze the user's message and identify the most suitable AI tools and models for image generation.
+        Your task is to analyze the user's message and the provided search results to recommend the most 
+        suitable AI tools and models for image generation.
 
-        Based on the user's needs, provide a detailed recommendation for the following:
+        Based on the user's needs and the search results, provide a detailed recommendation for:
         1. Base model
         2. LoRA
         3. ControlNet
@@ -26,17 +56,22 @@ def analyze_user_needs(state: WorkflowCreator) -> dict:
         User's Message:
         {user_message}
 
-        If the task is simple, you don't need to fill all fields. If a basic model is enough, just recommend that.
-        Prioritize models from Hugging Face and CivitAI. You must find/choose OpenSource models.
+        Search Results:
+        {search_results}
 
         Rules:
-        1. The recommended models should use the same architecture
+        - Prioritize models from Hugging Face and CivitAI. You must choose OpenSource models.
+        - Ensure the recommended models share the same architecture (e.g., all for SDXL).
+        - If the task is simple, you don't need to fill all fields.
         """
     )
-    llm = ChatOpenAI(model=Configuration.base_model, temperature=0)
-    structured_llm_chain = prompt | llm.with_structured_output(AnalyzedNeeds)
+
+    structured_llm_chain = final_analysis_prompt | llm.with_structured_output(AnalyzedNeeds)
     
-    response = structured_llm_chain.invoke({"user_message": user_message})
+    response = structured_llm_chain.invoke({
+        "user_message": user_message,
+        "search_results": search_results_str
+    })
     
     return {"analyzed_user_needs": response}
 
@@ -94,7 +129,7 @@ def write_diffusers_code(state: WorkflowCreator) -> dict:
     """
     Node 4: Write the code to run diffusers models.
     """
-    print("--- Step 3: Evaluating Model Cards ---")
+    print("--- Step 4: Generating Code---")
     models = state["final_models"]
     user_message = state["user_message"]
 
@@ -127,4 +162,27 @@ def write_diffusers_code(state: WorkflowCreator) -> dict:
     
     return {"code": code}
 
+def format_code(state: WorkflowCreator) -> dict:
+    """
+    Writes code to a file, formats it with Ruff, and returns the result.
+    """
+    code_model = state["code"]
+    code_string = code_model.code
+    file_path = "test/test.py"
 
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    
+    # Use 'with open' to automatically handle closing the file
+    with open(file_path, "w", encoding="utf-8") as file_object:
+        file_object.write(code_string)
+
+    # Run the formatter
+    result = subprocess.run(
+        ["ruff", "format", file_path], 
+        capture_output=True, 
+        text=True
+    )
+
+    # Return a dictionary with a key and a value
+    return {"result": result}

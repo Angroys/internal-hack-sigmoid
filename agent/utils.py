@@ -1,12 +1,7 @@
-from dependencies.openai import OpenAIClient
 from dotenv import load_dotenv
-import os, json
-from dependencies.hugging_face_card_extractor import HFClient
 from langchain_community.tools.tavily_search import TavilySearchResults
 from agent.agent_state import AnalyzedNeeds
-from dependencies.hugging_face_card_extractor import HFClient
 load_dotenv()
-hf_client = HFClient()
 
 def search_for_models(model_recommendations: AnalyzedNeeds) -> dict:
     search_tool = TavilySearchResults(max_results=3)
@@ -44,14 +39,3 @@ def search_for_models(model_recommendations: AnalyzedNeeds) -> dict:
         research_results[model_type] = all_found_models if all_found_models else "No valid Hugging Face models found."
     
     return research_results
-
-def extract_model_cards(researched_models: dict) -> dict:
-    model_cards = {}
-    for model_type, models in researched_models.items():
-        if isinstance(models, list):
-            card_content = []
-            for model_id in models:
-                content = hf_client.extract_model_card(model_id)
-                card_content.append(f"--- MODEL: {model_id} ---\n{content}")
-            model_cards[model_type] = "\n\n".join(card_content)
-    return model_cards

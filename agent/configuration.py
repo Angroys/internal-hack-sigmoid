@@ -12,7 +12,7 @@ class Configuration:
     """LangGraph Configuration for the deep research agent."""
 
     # Model settings
-    base_model: str = "gpt-5-nano"  
+    base_model: str = "gpt-5-mini"  
     temperature: float = 0
     
     @classmethod
