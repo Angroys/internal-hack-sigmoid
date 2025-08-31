@@ -29,7 +29,7 @@ workflow.add_edge("format_code", END)
 app = workflow.compile()
 
 if __name__ == "__main__":
-    inputs = {"user_message": "I want to create oil painting images combined with digital art style."}
+    inputs = {"user_message": "I want to generate an image with an antropomorphic human with fur."}
     for output in app.stream(inputs):
         for key, value in output.items():
             print(f"Output from node '{key}':")

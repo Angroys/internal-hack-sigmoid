@@ -18,7 +18,6 @@ Usage:
 """
 
 from typing import Optional, Union
-import os
 import torch
 from PIL import Image
 import numpy as np
@@ -224,29 +223,29 @@ if __name__ == "__main__":
     engine = DiffusionEngine()
 
     prompt = (
-        "A photorealistic futuristic city skyline at night in cyberpunk style, towering skyscrapers, neon signs, "
-        "wet streets reflecting lights, volumetric fog, intricate architectural detail, dramatic cinematic lighting"
+        "A photorealistic futuristic alley from a city skyline at night in cyberpunk style, towering skyscrapers, neon signs in the distance "
+        "wet streets reflecting lights, volumetric fog, intricate architectural detail, dramatic cinematic lighting, masterpiece, high quality, 8k"
     )
-    negative = "lowres, text, watermark, deformed, bad anatomy"
+    negative = "lowres, text, watermark, deformed, bad , noisy, low quality, 240p"
 
     # If you have a depth map (grayscale) for camera framing, load it here; otherwise leave None
-    depth_map = Image.new("RGB", (768, 1024), "black")
+    depth_map = Image.open(rf"test\1_depth_map.png")
     # If you have a reference image for IP-Adapter (composition/style guidance), load it here; otherwise None
     ip_ref = None
 
     result = engine.generate(
         prompt=prompt,
         negative_prompt=negative,
-        num_inference_steps=28,
-        guidance_scale=7.5,
+        num_inference_steps=40,
+        guidance_scale=7,
         height=1024,
         width=768,
-        seed=42,
+        seed=0,
         depth_image=depth_map,
         ip_adapter_image=ip_ref,
     )
 
     # Save output
-    output_path = "cyberpunk_city.png"
+    output_path = rf"test\results\1_result_4.png"
     result.save(output_path)
     print(f"Saved image to {output_path}")
