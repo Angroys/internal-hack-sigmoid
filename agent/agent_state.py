@@ -1,6 +1,5 @@
 from typing_extensions import TypedDict
 from pydantic.v1 import BaseModel, Field
-from typing import List, Dict, Union 
 from typing import List, Dict, Union, Optional 
 
 class WorkflowCreatorUserInput(TypedDict):
